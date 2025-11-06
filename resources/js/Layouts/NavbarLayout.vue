@@ -6,6 +6,12 @@
         <Link href="/" class="hover:underline">Home</Link>
         <Link href="/about" class="hover:underline">Sobre</Link>
         <Link href="/contact" class="hover:underline">Contato</Link>
+        <Link
+          href="/posts/create"
+          class="ml-4 px-4 py-2 border border-stone-400 text-stone-700 hover:bg-stone-200 rounded transition"
+        >
+         + Novo Post
+        </Link>
       </nav>
     </header>
 
