@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Models\Post;
+use App\Http\Controllers\PostController;
+
 
 Route::inertia('/', 'Home',['posts' => Post::with('user')->get()]); //Carrega os posts com os dados do usuário relacionado, visto que vue 3 precisa disso para acessar os dados do usuário em cada post ao contrario do laravel blade que acessa direto via relacionamento
 
@@ -12,6 +14,7 @@ route::get('details/{id}', function($id){
 });
 
 route::inertia('posts/create', 'Posts/Create'); //Rota para criar novo post
+route::post('poststore', [PostController::class, 'store'])->name('post.store'); //Rota para armazenar novo post
 
 
 

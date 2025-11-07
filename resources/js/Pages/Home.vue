@@ -11,7 +11,7 @@
         </h2>
         </Link>
         <p class="text-stone-600 leading-relaxed mb-3">{{ post.content }}</p>
-        <p class="text-stone-500 text-sm">{{ post.user.name }} • {{ post.created_at }}</p>
+        <p class="text-stone-500 text-sm">{{ post.user?.name ? post.user.name : 'Autor Desconhecido' }} • {{ post.created_at }}</p>
       </article>
     </div>
   </AppLayout>
@@ -22,6 +22,7 @@ import AppLayout from '@/Layouts/NavbarLayout.vue'
 import { Link } from '@inertiajs/vue3';
 //Props recebidas do backend(Route)
 defineProps({
-  posts: Object
+  posts: Object,
+  
 })
 </script>
