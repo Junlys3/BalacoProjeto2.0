@@ -17,7 +17,7 @@ RUN npm run build
 FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
-# Instala dependências do sistema
+# Instala dependências
 RUN apk add --no-cache \
     bash \
     git \
@@ -33,19 +33,19 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     mariadb mariadb-client \
-    jq   # ✅ Adicionado aqui
+    jq
 
-# Instala extensões PHP necessárias
+# Extensões PHP
 RUN docker-php-ext-install pdo pdo_mysql mbstring gd intl
 
-# Copia o Composer do container oficial
+# Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Copia o código do projeto Laravel e o build do frontend
+# Copia código Laravel e build frontend
 COPY . .
 COPY --from=frontend /app/public/build ./public/build
 
-# 🔧 Configura o .env
+# Configura o .env
 RUN cp .env.example .env || true && \
     sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env && \
     sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env && \
@@ -54,15 +54,15 @@ RUN cp .env.example .env || true && \
     sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env && \
     sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=1478963.KM/' .env
 
-# ✅ Desativa temporariamente o script Laravel que causa erro
+# Desativa temporariamente script do Composer
 RUN cp composer.json composer.json.bak && \
     cat composer.json | jq 'del(.scripts["post-autoload-dump"])' > composer.json.tmp && \
     mv composer.json.tmp composer.json
 
-# ✅ Instala dependências sem tentar acessar o banco
+# Instala dependências
 RUN composer install --no-dev --optimize-autoloader
 
-# ✅ Restaura o composer.json original
+# Restaura o composer.json original
 RUN mv composer.json.bak composer.json
 
 # Inicializa o banco MariaDB
@@ -80,9 +80,14 @@ ENV DB_DATABASE=inertiabalaco
 ENV DB_USERNAME=root
 ENV DB_PASSWORD=1478963.KM
 
-# Comando final para iniciar tudo
+# ✅ Espera o banco realmente estar online antes de rodar Laravel
 CMD mysqld_safe --datadir=/var/lib/mysql & \
-    sleep 5 && \
+    echo "🕒 Aguardando o MariaDB iniciar..." && \
+    until mariadb -h127.0.0.1 -uroot -p1478963.KM -e "SELECT 1;" > /dev/null 2>&1; do \
+        sleep 2; \
+        echo "⌛ Esperando o banco..."; \
+    done && \
+    echo "✅ Banco pronto!" && \
     php artisan key:generate --force && \
     php artisan migrate --force && \
     php artisan config:cache && \
