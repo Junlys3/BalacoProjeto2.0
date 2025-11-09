@@ -4,11 +4,9 @@
 FROM node:20 AS frontend
 WORKDIR /app
 
-# Instala dependências do frontend
 COPY package*.json ./
 RUN npm install
 
-# Copia código e gera build
 COPY . .
 RUN npm run build
 
@@ -18,7 +16,6 @@ RUN npm run build
 FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
-# Instala dependências do sistema e PostgreSQL
 RUN apk add --no-cache \
     bash \
     git \
@@ -47,7 +44,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . .
 COPY --from=frontend /app/public/build ./public/build
 
-# Cria pastas de cache e storage do Laravel
+# Cria pastas de cache e storage
 RUN mkdir -p storage/framework/cache/data storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
@@ -58,13 +55,12 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts
 COPY wait-for-db.sh /usr/local/bin/wait-for-db.sh
 RUN chmod +x /usr/local/bin/wait-for-db.sh
 
-# Expõe porta para Render detectar HTTP
+# Expõe porta HTTP para Render
 EXPOSE 8000
 
-# CMD final: espera banco, package discover, migrations, cache e serve
+# CMD final: espera banco, descobre pacotes, cacheia config/rotas/views, serve
 CMD /usr/local/bin/wait-for-db.sh && \
     php artisan package:discover --ansi && \
-    php artisan migrate --force && \
     php artisan config:cache && \
     php artisan route:cache && \
     php artisan view:cache && \
