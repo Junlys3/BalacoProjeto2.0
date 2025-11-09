@@ -16,6 +16,7 @@ RUN npm run build
 FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
+# Instala dependências do sistema e PostgreSQL
 RUN apk add --no-cache \
     bash \
     git \
@@ -48,7 +49,7 @@ COPY --from=frontend /app/public/build ./public/build
 RUN mkdir -p storage/framework/cache/data storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
-# Instala dependências Laravel sem rodar scripts (evita erro SQLite)
+# Instala dependências Laravel sem rodar scripts
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
 # Copia script de espera do banco
@@ -58,9 +59,12 @@ RUN chmod +x /usr/local/bin/wait-for-db.sh
 # Expõe porta HTTP para Render
 EXPOSE 8000
 
-# CMD final: espera banco, descobre pacotes, cacheia config/rotas/views, serve
+# CMD final: espera banco, descobre pacotes, limpa e gera cache, serve
 CMD /usr/local/bin/wait-for-db.sh && \
     php artisan package:discover --ansi && \
+    php artisan config:clear && \
+    php artisan route:clear && \
+    php artisan view:clear && \
     php artisan config:cache && \
     php artisan route:cache && \
     php artisan view:cache && \
