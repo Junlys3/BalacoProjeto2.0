@@ -55,9 +55,7 @@ RUN mkdir -p /var/lib/mysql /var/run/mysqld && \
     chown -R mysql:mysql /var/lib/mysql /var/run/mysqld && \
     mysqld --initialize-insecure --user=mysql --datadir=/var/lib/mysql
 
-# Gera chave e faz cache
-RUN php artisan key:generate || true
-RUN php artisan config:clear && php artisan config:cache && php artisan route:cache && php artisan view:cache
+
 
 # Expõe a porta padrão do Laravel
 EXPOSE 8000
@@ -73,5 +71,10 @@ ENV DB_PASSWORD=1478963.KM
 # Comando para iniciar MySQL e Laravel juntos
 CMD mysqld_safe --datadir=/var/lib/mysql & \
     sleep 5 && \
+    php artisan key:generate --force && \
     php artisan migrate --force && \
+    php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache && \
     php artisan serve --host=0.0.0.0 --port=8000
+
