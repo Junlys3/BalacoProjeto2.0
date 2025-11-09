@@ -47,10 +47,10 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . .
 COPY --from=frontend /app/public/build ./public/build
 
-# Configura .env via Environment Variables (Render irá passar as variáveis)
+# Configura .env (Render passará as variáveis)
 RUN cp .env.example .env || true
 
-# Desativa temporariamente post-autoload-dump para evitar erros
+# Desativa temporariamente post-autoload-dump
 RUN cp composer.json composer.json.bak && \
     cat composer.json | jq 'del(.scripts["post-autoload-dump"])' > composer.json.tmp && \
     mv composer.json.tmp composer.json
@@ -64,8 +64,13 @@ RUN mv composer.json.bak composer.json
 # Expõe porta do Laravel
 EXPOSE 8000
 
-# Comando final: apenas roda Laravel
-CMD php artisan key:generate --force && \
+# Script para aguardar o banco
+COPY wait-for-db.sh /usr/local/bin/wait-for-db.sh
+RUN chmod +x /usr/local/bin/wait-for-db.sh
+
+# Comando final
+CMD /usr/local/bin/wait-for-db.sh && \
+    php artisan key:generate --force && \
     php artisan migrate --force && \
     php artisan config:cache && \
     php artisan route:cache && \
