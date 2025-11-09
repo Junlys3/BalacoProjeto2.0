@@ -4,7 +4,7 @@
 FROM node:20 AS frontend
 WORKDIR /app
 
-# Copia e instala dependências do frontend
+# Copia os arquivos do frontend e instala dependências
 COPY package*.json ./
 RUN npm install
 
@@ -13,12 +13,12 @@ RUN npm run build
 
 
 # =========================
-# Etapa 2: Back-end (Laravel + MySQL)
+# Etapa 2: Back-end (Laravel + MariaDB)
 # =========================
 FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
-# Instala dependências do sistema
+# Instala dependências do sistema e do PHP
 RUN apk add --no-cache \
     bash \
     git \
@@ -33,7 +33,7 @@ RUN apk add --no-cache \
     icu-dev \
     nodejs \
     npm \
-    mysql mysql-client
+    mariadb mariadb-client
 
 # Instala extensões PHP necessárias
 RUN docker-php-ext-install pdo pdo_mysql mbstring gd intl
@@ -41,21 +41,21 @@ RUN docker-php-ext-install pdo pdo_mysql mbstring gd intl
 # Copia o Composer do container oficial
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Copia o código do projeto Laravel
+# Copia o código do Laravel
 COPY . .
 
-# Copia os arquivos buildados do front-end
+# Copia o build do frontend (Vite)
 COPY --from=frontend /app/public/build ./public/build
 
-# 🔧 Evita rodar scripts Artisan no build (impede erro SQLite)
-RUN composer install --no-dev --optimize-autoloader --no-scripts
+# Instala dependências do Laravel
+RUN composer install --no-dev --optimize-autoloader
 
-# Inicializa o banco MySQL (cria diretórios e permissões)
+# Inicializa o banco MariaDB
 RUN mkdir -p /var/lib/mysql /var/run/mysqld && \
     chown -R mysql:mysql /var/lib/mysql /var/run/mysqld && \
-    mysqld --initialize-insecure --user=mysql --datadir=/var/lib/mysql
+    mariadb-install-db --user=mysql --datadir=/var/lib/mysql
 
-# Expõe a porta padrão do Laravel
+# Expõe a porta do Laravel
 EXPOSE 8000
 
 # Variáveis de ambiente padrão
@@ -66,7 +66,7 @@ ENV DB_DATABASE=inertiabalaco
 ENV DB_USERNAME=root
 ENV DB_PASSWORD=1478963.KM
 
-# Comando para iniciar MySQL e Laravel juntos
+# Comando para iniciar MariaDB + Laravel
 CMD mysqld_safe --datadir=/var/lib/mysql & \
     sleep 5 && \
     php artisan key:generate --force && \
