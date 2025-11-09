@@ -36,6 +36,23 @@
             {{ form.errors.content }}
           </p>
         </div>
+        <div>
+          <label for="signature" class="block text-lg font-semibold mb-2">Assinatura</label>
+          <input
+            type="text"
+            id="signature"
+            v-model="form.signature"
+            maxlength="50"
+            placeholder="Digite sua assinatura..."
+            class="w-full border border-gray-400 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-gray-700"
+          />
+          <p
+            class="text-red-700 mt-2 text-sm italic border-l-4 border-red-700 pl-2"
+          >
+            {{ form.errors.signature }}
+          </p>
+        </div>
+
 
         <div class="flex justify-center">
           <button
@@ -57,7 +74,9 @@ import { useForm } from '@inertiajs/vue3'
 
 const form = useForm({
   title: '',
-  content: ''
+  content: '',
+  signature: ''
+
 })
 
 const submit = () => {

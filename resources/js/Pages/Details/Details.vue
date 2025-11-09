@@ -9,7 +9,7 @@
 
         <!-- Meta (autor + data) -->
         <p class="text-center text-stone-500 italic mb-10">
-          {{ post.user.name }} • {{  }}
+          {{ post.signature ? post.signature : "Autor Anônimo"  }} • {{  }}
         </p>
 
         <!-- Corpo do artigo -->
@@ -33,7 +33,7 @@
           <hr class="border-t border-stone-300 my-12" />
 
           <p class="text-center text-stone-600 italic">
-            Obrigado por ler! — <span class="font-semibold text-accent">{{ post.user.name }}</span>
+            Obrigado por ler! — <span class="font-semibold text-accent">{{ post.signature ? post.signature : "Autor Anônimo"  }}</span>
           </p>
         </div>
       </article>

@@ -12,6 +12,7 @@ class Post extends Model
         'user_id',
         'title',
         'content',
+        'signature',
     ];
 
     public function user()

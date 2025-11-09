@@ -32,8 +32,11 @@ class PostController extends Controller
        $PostData = $request->validate([
             'title' => ['required', 'max:100'],
             'content' => ['required', 'min:50'],
+            'signature' => ['nullable', 'max:50'],
+
         ]);
 
+  
 
 
    
