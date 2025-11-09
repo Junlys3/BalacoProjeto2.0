@@ -47,7 +47,7 @@ COPY . .
 # Copia os arquivos buildados do front-end
 COPY --from=frontend /app/public/build ./public/build
 
-# 🔧 Cria um .env com MySQL antes do Composer
+# 🔧 Cria e ajusta o .env com MySQL
 RUN cp .env.example .env || true && \
     sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env && \
     sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env && \
@@ -56,7 +56,10 @@ RUN cp .env.example .env || true && \
     sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env && \
     sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=1478963.KM/' .env
 
-# ✅ Instala dependências sem tentar conectar ao banco
+# ✅ Cria o banco SQLite falso para evitar erro no build
+RUN mkdir -p database && touch database/database.sqlite
+
+# ✅ Agora sim, instala dependências do Laravel sem erro
 RUN php -r "file_put_contents('.env', str_replace('DB_CONNECTION=mysql', 'DB_CONNECTION=sqlite', file_get_contents('.env')));" \
  && composer install --no-dev --optimize-autoloader \
  && php -r "file_put_contents('.env', str_replace('DB_CONNECTION=sqlite', 'DB_CONNECTION=mysql', file_get_contents('.env')));"
