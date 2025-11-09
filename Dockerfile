@@ -4,7 +4,7 @@
 FROM node:20 AS frontend
 WORKDIR /app
 
-# Copia os arquivos do frontend
+# Copia e instala dependências do frontend
 COPY package*.json ./
 RUN npm install
 
@@ -47,15 +47,13 @@ COPY . .
 # Copia os arquivos buildados do front-end
 COPY --from=frontend /app/public/build ./public/build
 
-# Instala dependências do Laravel
-RUN composer install --no-dev --optimize-autoloader
+# 🔧 Evita rodar scripts Artisan no build (impede erro SQLite)
+RUN composer install --no-dev --optimize-autoloader --no-scripts
 
-# Inicializa o banco MySQL
+# Inicializa o banco MySQL (cria diretórios e permissões)
 RUN mkdir -p /var/lib/mysql /var/run/mysqld && \
     chown -R mysql:mysql /var/lib/mysql /var/run/mysqld && \
     mysqld --initialize-insecure --user=mysql --datadir=/var/lib/mysql
-
-
 
 # Expõe a porta padrão do Laravel
 EXPOSE 8000
@@ -77,4 +75,3 @@ CMD mysqld_safe --datadir=/var/lib/mysql & \
     php artisan route:cache && \
     php artisan view:cache && \
     php artisan serve --host=0.0.0.0 --port=8000
-
