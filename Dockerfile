@@ -4,7 +4,6 @@
 FROM node:20 AS frontend
 WORKDIR /app
 
-# Copia e instala dependências do frontend
 COPY package*.json ./
 RUN npm install
 
@@ -18,7 +17,6 @@ RUN npm run build
 FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
-# Instala dependências do sistema e PHP
 RUN apk add --no-cache \
     bash \
     git \
@@ -35,19 +33,13 @@ RUN apk add --no-cache \
     npm \
     mariadb mariadb-client
 
-# Instala extensões PHP necessárias
 RUN docker-php-ext-install pdo pdo_mysql mbstring gd intl
 
-# Copia o Composer do container oficial
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-# Copia o código do Laravel
 COPY . .
-
-# Copia os arquivos buildados do front-end
 COPY --from=frontend /app/public/build ./public/build
 
-# 🔧 Cria e ajusta o .env com MySQL
+# 🔧 Prepara o .env
 RUN cp .env.example .env || true && \
     sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env && \
     sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env && \
@@ -56,23 +48,24 @@ RUN cp .env.example .env || true && \
     sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env && \
     sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=1478963.KM/' .env
 
-# ✅ Cria o banco SQLite falso para evitar erro no build
-RUN mkdir -p database && touch database/database.sqlite
+# ✅ Desabilita temporariamente o script que quebra o build
+RUN cp composer.json composer.json.bak && \
+    cat composer.json | jq 'del(.scripts["post-autoload-dump"])' > composer.json.tmp && \
+    mv composer.json.tmp composer.json
 
-# ✅ Agora sim, instala dependências do Laravel sem erro
-RUN php -r "file_put_contents('.env', str_replace('DB_CONNECTION=mysql', 'DB_CONNECTION=sqlite', file_get_contents('.env')));" \
- && composer install --no-dev --optimize-autoloader \
- && php -r "file_put_contents('.env', str_replace('DB_CONNECTION=sqlite', 'DB_CONNECTION=mysql', file_get_contents('.env')));"
+# ✅ Instala dependências do Laravel sem tentar conectar ao banco
+RUN composer install --no-dev --optimize-autoloader
+
+# ✅ Restaura o composer.json original
+RUN mv composer.json.bak composer.json
 
 # Inicializa o banco MariaDB
 RUN mkdir -p /var/lib/mysql /var/run/mysqld && \
     chown -R mysql:mysql /var/lib/mysql /var/run/mysqld && \
     mariadb-install-db --user=mysql --datadir=/var/lib/mysql
 
-# Expõe a porta padrão do Laravel
 EXPOSE 8000
 
-# Variáveis de ambiente padrão
 ENV DB_CONNECTION=mysql
 ENV DB_HOST=127.0.0.1
 ENV DB_PORT=3306
@@ -80,7 +73,6 @@ ENV DB_DATABASE=inertiabalaco
 ENV DB_USERNAME=root
 ENV DB_PASSWORD=1478963.KM
 
-# Comando para iniciar MariaDB + Laravel
 CMD mysqld_safe --datadir=/var/lib/mysql & \
     sleep 5 && \
     php artisan key:generate --force && \
