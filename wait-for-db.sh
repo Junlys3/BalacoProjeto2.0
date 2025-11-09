@@ -3,8 +3,8 @@ set -e
 
 echo "🕒 Aguardando o banco de dados..."
 
-# Loop até conseguir conectar ao banco
-until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" -q; do
+# Loop até conseguir conectar ao banco com SSL
+until PGPASSWORD=$DB_PASSWORD psql "host=$DB_HOST port=$DB_PORT dbname=$DB_DATABASE user=$DB_USERNAME sslmode=require" -c '\q' 2>/dev/null; do
   sleep 2
   echo "⌛ Banco ainda não está pronto..."
 done
