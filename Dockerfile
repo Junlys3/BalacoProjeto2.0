@@ -16,7 +16,7 @@ RUN npm run build
 FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
-# Instala dependências do sistema e do PostgreSQL
+# Instala dependências do sistema e PostgreSQL
 RUN apk add --no-cache \
     bash \
     git \
@@ -47,32 +47,6 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . .
 COPY --from=frontend /app/public/build ./public/build
 
-# Configura .env (Render passará as variáveis)
-RUN cp .env.example .env || true
-
-# Desativa temporariamente post-autoload-dump
+# Desativa temporariamente post-autoload-dump para evitar erros de build
 RUN cp composer.json composer.json.bak && \
-    cat composer.json | jq 'del(.scripts["post-autoload-dump"])' > composer.json.tmp && \
-    mv composer.json.tmp composer.json
-
-# Instala dependências Laravel
-RUN composer install --no-dev --optimize-autoloader
-
-# Restaura composer.json original
-RUN mv composer.json.bak composer.json
-
-# Expõe porta do Laravel
-EXPOSE 8000
-
-# Script para aguardar o banco
-COPY wait-for-db.sh /usr/local/bin/wait-for-db.sh
-RUN chmod +x /usr/local/bin/wait-for-db.sh
-
-# Comando final
-CMD /usr/local/bin/wait-for-db.sh && \
-    php artisan key:generate --force && \
-    php artisan migrate --force && \
-    php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache && \
-    php artisan serve --host=0.0.0.0 --port=8000
+    cat composer.json | jq 'del(.scripts["post-autoload-dump"])' > composer.json.tmp

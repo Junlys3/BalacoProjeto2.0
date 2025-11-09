@@ -1,12 +1,10 @@
-#!/bin/bash
-# Espera o banco de dados PostgreSQL estar disponível
-set -e
+#!/bin/sh
+# Espera o banco de dados ficar disponível
 
 echo "🕒 Aguardando o banco de dados..."
 
-while ! pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" > /dev/null 2>&1; do
+until php -r "try { new PDO(getenv('DATABASE_URL')); echo '✅ Banco pronto!\n'; } catch (\PDOException \$e) { exit(1); }"
+do
   sleep 2
   echo "⌛ Banco ainda não está pronto..."
 done
-
-echo "✅ Banco pronto!"
