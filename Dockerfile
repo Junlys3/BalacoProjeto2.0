@@ -4,10 +4,8 @@
 FROM node:20 AS frontend
 WORKDIR /app
 
-# Copia os arquivos do frontend e instala dependências
 COPY package*.json ./
 RUN npm install
-
 COPY . .
 RUN npm run build
 
@@ -44,10 +42,19 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Copia o código do Laravel
 COPY . .
 
-# Copia o build do frontend (Vite)
+# Copia o build do frontend
 COPY --from=frontend /app/public/build ./public/build
 
-# Instala dependências do Laravel
+# 🔧 Cria um .env mínimo antes do Composer para evitar fallback no SQLite
+RUN cp .env.example .env || true && \
+    sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env && \
+    sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env && \
+    sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env && \
+    sed -i 's/DB_DATABASE=.*/DB_DATABASE=inertiabalaco/' .env && \
+    sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env && \
+    sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=1478963.KM/' .env
+
+# ✅ Agora sim, instala dependências do Laravel
 RUN composer install --no-dev --optimize-autoloader
 
 # Inicializa o banco MariaDB
@@ -55,10 +62,10 @@ RUN mkdir -p /var/lib/mysql /var/run/mysqld && \
     chown -R mysql:mysql /var/lib/mysql /var/run/mysqld && \
     mariadb-install-db --user=mysql --datadir=/var/lib/mysql
 
-# Expõe a porta do Laravel
+# Expõe a porta padrão
 EXPOSE 8000
 
-# Variáveis de ambiente padrão
+# Variáveis de ambiente padrão (reforça o .env)
 ENV DB_CONNECTION=mysql
 ENV DB_HOST=127.0.0.1
 ENV DB_PORT=3306
@@ -66,7 +73,7 @@ ENV DB_DATABASE=inertiabalaco
 ENV DB_USERNAME=root
 ENV DB_PASSWORD=1478963.KM
 
-# Comando para iniciar MariaDB + Laravel
+# Comando de inicialização (MySQL + Laravel)
 CMD mysqld_safe --datadir=/var/lib/mysql & \
     sleep 5 && \
     php artisan key:generate --force && \
