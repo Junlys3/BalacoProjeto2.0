@@ -4,7 +4,6 @@
 FROM node:20 AS frontend
 WORKDIR /app
 
-# Copia arquivos do frontend
 COPY package*.json ./
 RUN npm install
 
@@ -17,7 +16,7 @@ RUN npm run build
 FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
-# Instala dependências do sistema
+# Instala dependências do sistema e do PostgreSQL
 RUN apk add --no-cache \
     bash \
     git \
@@ -33,9 +32,12 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     jq \
-    postgresql-client
+    postgresql-dev \
+    postgresql-client \
+    gawk \
+    build-base
 
-# Instala extensões PHP necessárias
+# Instala extensões PHP
 RUN docker-php-ext-install pdo pdo_pgsql mbstring gd intl
 
 # Instala Composer
@@ -45,14 +47,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . .
 COPY --from=frontend /app/public/build ./public/build
 
-# Configura o .env para Supabase
-RUN cp .env.example .env || true && \
-    sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=pgsql/' .env && \
-    sed -i 's/DB_HOST=.*/DB_HOST=db.dyeafczfxsvkeostodtv.supabase.co/' .env && \
-    sed -i 's/DB_PORT=.*/DB_PORT=5432/' .env && \
-    sed -i 's/DB_DATABASE=.*/DB_DATABASE=postgres/' .env && \
-    sed -i 's/DB_USERNAME=.*/DB_USERNAME=postgres/' .env && \
-    sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=1478963.KM/' .env
+# Configura .env via Environment Variables (Render irá passar as variáveis)
+RUN cp .env.example .env || true
 
 # Desativa temporariamente post-autoload-dump para evitar erros
 RUN cp composer.json composer.json.bak && \
