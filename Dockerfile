@@ -4,20 +4,20 @@
 FROM node:20 AS frontend
 WORKDIR /app
 
+# Copia arquivos do frontend
 COPY package*.json ./
 RUN npm install
 
 COPY . .
 RUN npm run build
 
-
 # =========================
-# Etapa 2: Back-end (Laravel + MariaDB)
+# Etapa 2: Back-end (Laravel)
 # =========================
 FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
-# Instala dependências
+# Instala dependências do sistema
 RUN apk add --no-cache \
     bash \
     git \
@@ -32,63 +32,44 @@ RUN apk add --no-cache \
     icu-dev \
     nodejs \
     npm \
-    mariadb mariadb-client \
-    jq
+    jq \
+    postgresql-client
 
-# Extensões PHP
-RUN docker-php-ext-install pdo pdo_mysql mbstring gd intl
+# Instala extensões PHP necessárias
+RUN docker-php-ext-install pdo pdo_pgsql mbstring gd intl
 
-# Composer
+# Instala Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Copia código Laravel e build frontend
+# Copia código Laravel e build do frontend
 COPY . .
 COPY --from=frontend /app/public/build ./public/build
 
-# Configura o .env
+# Configura o .env para Supabase
 RUN cp .env.example .env || true && \
-    sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env && \
-    sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env && \
-    sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env && \
-    sed -i 's/DB_DATABASE=.*/DB_DATABASE=inertiabalaco/' .env && \
-    sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env && \
+    sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=pgsql/' .env && \
+    sed -i 's/DB_HOST=.*/DB_HOST=db.dyeafczfxsvkeostodtv.supabase.co/' .env && \
+    sed -i 's/DB_PORT=.*/DB_PORT=5432/' .env && \
+    sed -i 's/DB_DATABASE=.*/DB_DATABASE=postgres/' .env && \
+    sed -i 's/DB_USERNAME=.*/DB_USERNAME=postgres/' .env && \
     sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=1478963.KM/' .env
 
-# Desativa temporariamente script do Composer
+# Desativa temporariamente post-autoload-dump para evitar erros
 RUN cp composer.json composer.json.bak && \
     cat composer.json | jq 'del(.scripts["post-autoload-dump"])' > composer.json.tmp && \
     mv composer.json.tmp composer.json
 
-# Instala dependências
+# Instala dependências Laravel
 RUN composer install --no-dev --optimize-autoloader
 
-# Restaura o composer.json original
+# Restaura composer.json original
 RUN mv composer.json.bak composer.json
 
-# Inicializa o banco MariaDB
-RUN mkdir -p /var/lib/mysql /var/run/mysqld && \
-    chown -R mysql:mysql /var/lib/mysql /var/run/mysqld && \
-    mariadb-install-db --user=mysql --datadir=/var/lib/mysql
-
+# Expõe porta do Laravel
 EXPOSE 8000
 
-# Variáveis de ambiente padrão
-ENV DB_CONNECTION=mysql
-ENV DB_HOST=127.0.0.1
-ENV DB_PORT=3306
-ENV DB_DATABASE=inertiabalaco
-ENV DB_USERNAME=root
-ENV DB_PASSWORD=1478963.KM
-
-# ✅ Espera o banco realmente estar online antes de rodar Laravel
-CMD mysqld_safe --datadir=/var/lib/mysql & \
-    echo "🕒 Aguardando o MariaDB iniciar..." && \
-    until mariadb -h127.0.0.1 -uroot -p1478963.KM -e "SELECT 1;" > /dev/null 2>&1; do \
-        sleep 2; \
-        echo "⌛ Esperando o banco..."; \
-    done && \
-    echo "✅ Banco pronto!" && \
-    php artisan key:generate --force && \
+# Comando final: apenas roda Laravel
+CMD php artisan key:generate --force && \
     php artisan migrate --force && \
     php artisan config:cache && \
     php artisan route:cache && \
