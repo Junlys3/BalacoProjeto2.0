@@ -47,11 +47,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . .
 COPY --from=frontend /app/public/build ./public/build
 
-# Cria pasta de cache do Laravel e storage
+# Cria pastas de cache e storage do Laravel
 RUN mkdir -p storage/framework/cache/data storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
-# Instala dependências Laravel sem rodar scripts
+# Instala dependências Laravel sem rodar scripts (evita erro SQLite)
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
 # Copia script de espera do banco
@@ -61,9 +61,8 @@ RUN chmod +x /usr/local/bin/wait-for-db.sh
 # Expõe porta para Render detectar HTTP
 EXPOSE 8000
 
-# Comando final: espera banco e inicializa Laravel
+# CMD final: espera banco, package discover, migrations, cache e serve
 CMD /usr/local/bin/wait-for-db.sh && \
-    php artisan key:generate --force && \
     php artisan package:discover --ansi && \
     php artisan migrate --force && \
     php artisan config:cache && \
