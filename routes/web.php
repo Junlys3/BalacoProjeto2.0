@@ -6,7 +6,11 @@ use App\Models\Post;
 use App\Http\Controllers\PostController;
 
 
-Route::inertia('/', 'Home',['posts' => Post::with('user')->get()]); //Carrega os posts com os dados do usuário relacionado, visto que vue 3 precisa disso para acessar os dados do usuário em cada post ao contrario do laravel blade que acessa direto via relacionamento
+Route::get('/', function () {
+    return Inertia::render('Home', [
+        'posts' => Post::with('user')->get()
+    ]);
+}); //Carrega os posts com os dados do usuário relacionado, visto que vue 3 precisa disso para acessar os dados do usuário em cada post ao contrario do laravel blade que acessa direto via relacionamento
 
 route::get('details/{id}', function($id){
     $post = Post::with('user')->findorFail($id);
