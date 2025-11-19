@@ -18,14 +18,14 @@
             {{ post.content }}
           </p>
 
+           <!-- Informações extras -->
           <blockquote class="border-l-4 border-accent pl-4 italic text-stone-700 my-8">
             “O código limpo é como poesia — não só funciona, como também é uma merda.”
           </blockquote>
 
           <p>
-            A simplicidade é o que torna o Laravel tão poderoso. Ele se preocupa em
-            fazer o desenvolvedor se sentir desconfortável, como se o código tivesse
-            personalidade própria.
+            Leia atentamente e verique os fatos direito, porque aqui a
+            galera fala merda
           </p>
 
         
